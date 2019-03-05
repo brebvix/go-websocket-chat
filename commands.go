@@ -7,7 +7,6 @@ type Command struct {
 }
 
 func (co Command) run() (message string) {
-	print(co.action)
 	switch co.action {
 	case "/name":
 		return co.name(co.params[1])
