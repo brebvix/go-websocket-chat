@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -61,15 +62,26 @@ func (c *Client) readPump() {
 
 			message = []byte(string(c.name) + " authorized")
 		} else {
-			var buf = c.name
-			var symbolBuf = []byte(": ")
+			var stringMsg = []rune(string(message))
+			var buf []byte
 
-			for localBt := range symbolBuf {
-				buf = append(buf, symbolBuf[localBt])
-			}
+			if string(stringMsg[0:1]) == "/" {
+				var splitMessage = strings.Split(string(stringMsg), " ")
+				var co = Command{action: splitMessage[0], params: splitMessage, client: c}
 
-			for bt := range message {
-				buf = append(buf, message[bt])
+				resultMessage := co.run()
+				buf = []byte(resultMessage)
+			} else {
+				buf = c.name
+				var symbolBuf = []byte(": ")
+
+				for localBt := range symbolBuf {
+					buf = append(buf, symbolBuf[localBt])
+				}
+
+				for bt := range message {
+					buf = append(buf, message[bt])
+				}
 			}
 
 			message = buf
@@ -126,7 +138,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	print("connected")
+
 	client := &Client{hub: hub, conn: conn, firstMessage: true, send: make(chan []byte, 256)}
 	client.hub.register <- client
 
